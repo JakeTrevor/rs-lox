@@ -55,7 +55,6 @@ enum TokenTag {
 pub enum ParseErr {
     UnterminatedString,
     UnexpectedCharacter,
-    Nothing,
 }
 
 #[derive(Clone, Debug)]
@@ -284,13 +283,6 @@ impl<'a> Scanner<'a> {
                 }
             }
 
-            // Skip whitespace
-            ' ' | '\r' | '\t' => Err(ParseErr::Nothing),
-            '\n' => {
-                self.newline();
-                Err(ParseErr::Nothing)
-            }
-
             '"' => self.string(),
 
             c => {
@@ -298,11 +290,24 @@ impl<'a> Scanner<'a> {
                     self.number()
                 } else if c.is_alphabetic() {
                     self.identifier()
+                } else if c.is_whitespace() {
+                    panic!("All whitespace should get eaten by eat_whitespace")
                 } else {
                     return Err(ParseErr::UnexpectedCharacter);
                 }
             }
         }
+    }
+
+    fn eat_whitespace(&mut self) {
+        while !self.at_end() && self.peek().is_whitespace() {
+            if self.peek() == '\n' {
+                self.line += 1;
+            }
+            self.advance();
+        }
+        self.start = self.pos;
+        self.start_col = self.current_col;
     }
 
     pub fn scan(&mut self) -> (Vec<Token>, Vec<ParseErr>) {
@@ -311,6 +316,12 @@ impl<'a> Scanner<'a> {
 
         while !self.at_end() {
             self.start = self.pos;
+            self.eat_whitespace();
+
+            if self.at_end() {
+                break;
+            }
+
             match self.scan_token() {
                 Ok(token) => tokens.push(token),
                 Err(e) => errs.push(e),
