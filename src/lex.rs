@@ -30,6 +30,7 @@ enum TokenTag {
     String,
     Number,
     Comment,
+    InlineComment,
 
     // Keywords
     And,
@@ -278,6 +279,13 @@ impl<'a> Scanner<'a> {
                         self.advance();
                     }
                     self.mk_token(TokenTag::Comment)
+                } else if self.matches('*') {
+                    while self.peek() != '*' && self.peek_next() != '/' && !self.at_end() {
+                        self.advance();
+                    }
+                    self.advance();
+                    self.advance();
+                    self.mk_token(TokenTag::InlineComment)
                 } else {
                     self.mk_token(TokenTag::Slash)
                 }
@@ -302,7 +310,7 @@ impl<'a> Scanner<'a> {
     fn eat_whitespace(&mut self) {
         while !self.at_end() && self.peek().is_whitespace() {
             if self.peek() == '\n' {
-                self.line += 1;
+                self.newline();
             }
             self.advance();
         }
