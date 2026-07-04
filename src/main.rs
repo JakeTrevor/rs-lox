@@ -3,6 +3,7 @@ use std::{env, fs, process};
 
 use crate::lex::Scanner;
 
+mod ast;
 mod lex;
 
 fn main() {
