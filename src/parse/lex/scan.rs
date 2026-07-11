@@ -1,9 +1,7 @@
 use crate::parse::{
-    lex::{
-        err::{LexErr, LexErrTag},
-        token::{Token, TokenTag},
-    },
+    lex::err::{LexErr, LexErrTag},
     position::DocumentPosition,
+    token::{Token, TokenTag},
 };
 
 pub struct Scanner<'a> {
@@ -101,6 +99,13 @@ impl<'a> Scanner<'a> {
         while self.peek() != '"' && !self.at_end() {
             if self.peek() == '\n' {
                 self.newline();
+            }
+
+            if self.peek() == '\\' {
+                self.advance();
+                if self.at_end() {
+                    break;
+                }
             }
 
             self.advance();
