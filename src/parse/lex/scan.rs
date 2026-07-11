@@ -1,110 +1,34 @@
-use crate::lex::ParseErr::UnterminatedString;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum TokenTag {
-    // Single-character tokens.
-    LeftParen,
-    RightParen,
-    LeftBrace,
-    RightBrace,
-    Comma,
-    Dot,
-    Minus,
-    Plus,
-    SemiColon,
-    Slash,
-    Star,
-
-    // One or two character tokens.
-    Bang,
-    BangEqual,
-    Equal,
-    EqualEqual,
-    Greater,
-    GreaterEqual,
-    Less,
-    LessEqual,
-
-    // Literals.
-    Identifier,
-    String,
-    Number,
-    Comment,
-    InlineComment,
-
-    // Keywords
-    And,
-    Class,
-    Else,
-    False,
-    Fun,
-    For,
-    If,
-    Nil,
-    Or,
-    Print,
-    Return,
-    Super,
-    This,
-    True,
-    Var,
-    While,
-
-    EOF,
-}
-
-pub enum ParseErr {
-    UnterminatedString,
-    UnexpectedCharacter,
-}
-
-#[derive(Clone, Debug)]
-pub struct Token {
-    tag: TokenTag,
-    lexeme: String,
-    line: usize,
-    column: usize,
-}
-
-impl Token {
-    fn new(tag: TokenTag, lexeme: String, line: usize, column: usize) -> Self {
-        Token {
-            tag,
-            lexeme,
-            line,
-            column,
-        }
-    }
-}
+use crate::parse::{
+    lex::{
+        err::{LexErr, LexErrTag},
+        token::{Token, TokenTag},
+    },
+    position::DocumentPosition,
+};
 
 pub struct Scanner<'a> {
+    filename: &'a str,
     content: &'a str,
-    start: usize,
-    pos: usize,
-    line: usize,
-    start_col: usize,
-    current_col: usize,
+    start_position: DocumentPosition,
+    current_position: DocumentPosition,
 }
 
 impl<'a> Scanner<'a> {
-    pub fn new(content: &'a str) -> Self {
+    pub fn new(filename: &'a str, content: &'a str) -> Self {
         Scanner {
+            filename,
             content,
-            start: 0,
-            pos: 0,
-            line: 1,
-            start_col: 1,
-            current_col: 1,
+            start_position: DocumentPosition::default(),
+            current_position: DocumentPosition::default(),
         }
     }
 
     fn newline(&mut self) {
-        self.line += 1;
-        self.current_col = 1;
+        self.current_position.newline();
     }
 
     fn at_end(&self) -> bool {
-        self.pos == self.content.len()
+        self.current_position.offset == self.content.len()
     }
 
     fn peek(&self) -> char {
@@ -115,19 +39,19 @@ impl<'a> Scanner<'a> {
         return self
             .content
             .chars()
-            .nth(self.pos)
+            .nth(self.current_position.offset)
             .expect("there to be a character");
     }
 
     fn peek_next(&self) -> char {
-        if self.pos + 1 >= self.content.len() {
+        if self.current_position.offset + 1 >= self.content.len() {
             return '\0';
         };
 
         return self
             .content
             .chars()
-            .nth(self.pos + 1)
+            .nth(self.current_position.offset + 1)
             .expect("there to be a character");
     }
 
@@ -135,11 +59,10 @@ impl<'a> Scanner<'a> {
         let char = self
             .content
             .chars()
-            .nth(self.pos)
+            .nth(self.current_position.offset)
             .expect("there to be a character");
 
-        self.pos += 1;
-        self.current_col += 1;
+        self.current_position.advance();
         char
     }
 
@@ -148,25 +71,33 @@ impl<'a> Scanner<'a> {
             return false;
         }
 
-        if self.content.chars().nth(self.pos).unwrap_or('\0') != expected {
+        if self.peek() != expected {
             return false;
         }
 
-        self.pos += 1;
-        self.current_col += 1;
+        self.current_position.advance();
         return true;
     }
 
-    fn mk_token(&mut self, tag: TokenTag) -> Result<Token, ParseErr> {
-        let lexeme = self.content[self.start..self.pos].to_owned();
-        let token = Token::new(tag, lexeme, self.line, self.start_col);
-        self.start = self.pos;
-        self.start_col = self.current_col;
+    fn mk_token(&mut self, tag: TokenTag) -> Result<Token, LexErr> {
+        let lexeme =
+            self.content[self.start_position.offset..self.current_position.offset].to_owned();
+        let token = Token::new(tag, lexeme, self.start_position.clone());
+
+        self.start_position.set(&self.current_position);
 
         Ok(token)
     }
 
-    fn string(&mut self) -> Result<Token, ParseErr> {
+    fn mk_err(&self, tag: LexErrTag) -> Result<Token, LexErr> {
+        Err(LexErr::new(
+            tag,
+            self.filename.to_owned(),
+            self.start_position.clone(),
+        ))
+    }
+
+    fn string(&mut self) -> Result<Token, LexErr> {
         while self.peek() != '"' && !self.at_end() {
             if self.peek() == '\n' {
                 self.newline();
@@ -176,7 +107,7 @@ impl<'a> Scanner<'a> {
         }
 
         if self.at_end() {
-            return Err(UnterminatedString);
+            return self.mk_err(LexErrTag::UnterminatedString);
         }
 
         // The closing ".
@@ -184,7 +115,7 @@ impl<'a> Scanner<'a> {
         self.mk_token(TokenTag::String)
     }
 
-    fn number(&mut self) -> Result<Token, ParseErr> {
+    fn number(&mut self) -> Result<Token, LexErr> {
         while self.peek().is_numeric() {
             self.advance();
         }
@@ -200,12 +131,12 @@ impl<'a> Scanner<'a> {
         self.mk_token(TokenTag::Number)
     }
 
-    fn identifier(&mut self) -> Result<Token, ParseErr> {
+    fn identifier(&mut self) -> Result<Token, LexErr> {
         while self.peek().is_alphanumeric() {
             self.advance();
         }
 
-        let tag = match &self.content[self.start..self.pos] {
+        let tag = match &self.content[self.start_position.offset..self.current_position.offset] {
             "and" => TokenTag::And,
             "class" => TokenTag::Class,
             "else" => TokenTag::Else,
@@ -228,7 +159,7 @@ impl<'a> Scanner<'a> {
         self.mk_token(tag)
     }
 
-    fn scan_token(&mut self) -> Result<Token, ParseErr> {
+    fn scan_token(&mut self) -> Result<Token, LexErr> {
         match self.advance() {
             '(' => self.mk_token(TokenTag::LeftParen),
             ')' => self.mk_token(TokenTag::RightParen),
@@ -283,6 +214,11 @@ impl<'a> Scanner<'a> {
                     while self.peek() != '*' && self.peek_next() != '/' && !self.at_end() {
                         self.advance();
                     }
+
+                    if self.at_end() {
+                        return self.mk_err(LexErrTag::UnterminatedComment);
+                    }
+
                     self.advance();
                     self.advance();
                     self.mk_token(TokenTag::InlineComment)
@@ -301,7 +237,7 @@ impl<'a> Scanner<'a> {
                 } else if c.is_whitespace() {
                     panic!("All whitespace should get eaten by eat_whitespace")
                 } else {
-                    return Err(ParseErr::UnexpectedCharacter);
+                    return self.mk_err(LexErrTag::UnexpectedCharacter);
                 }
             }
         }
@@ -314,16 +250,14 @@ impl<'a> Scanner<'a> {
             }
             self.advance();
         }
-        self.start = self.pos;
-        self.start_col = self.current_col;
+        self.start_position.set(&self.current_position);
     }
 
-    pub fn scan(&mut self) -> (Vec<Token>, Vec<ParseErr>) {
+    pub fn scan(&mut self) -> (Vec<Token>, Vec<LexErr>) {
         let mut tokens = vec![];
         let mut errs = vec![];
 
         while !self.at_end() {
-            self.start = self.pos;
             self.eat_whitespace();
 
             if self.at_end() {
@@ -336,12 +270,7 @@ impl<'a> Scanner<'a> {
             }
         }
 
-        tokens.push(Token {
-            tag: TokenTag::EOF,
-            lexeme: "".to_owned(),
-            line: self.line,
-            column: self.start_col,
-        });
+        tokens.push(Token::eof(self.current_position.clone()));
 
         (tokens, errs)
     }

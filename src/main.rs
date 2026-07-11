@@ -1,12 +1,13 @@
+mod parse;
+
 use std::io::{Write, stdin, stdout};
 use std::{env, fs, process};
 
-use crate::lex::Scanner;
+use crate::parse::lex::scan::Scanner;
 
-mod ast;
-mod lex;
+// use crate::lex::Scanner;
 
-fn main() {
+fn main() -> std::io::Result<()> {
     let mut args = env::args();
 
     if args.len() > 2 {
@@ -18,38 +19,45 @@ fn main() {
         run_file(
             args.nth(1)
                 .expect("There to be a second argument when args.len() = 2"),
-        );
+        )
     } else {
-        run_prompt();
+        run_prompt()
     }
 }
 
-fn run_prompt() {
+fn run_prompt() -> std::io::Result<()> {
     loop {
         let mut s = String::new();
         print!("> ");
         let _ = stdout().flush();
 
         match stdin().read_line(&mut s) {
-            Err(_) => break,
+            Err(e) => return Err(e),
             Ok(_) => {}
         }
 
-        run(s);
+        run(s, "".to_owned())?
     }
 }
 
-fn run_file(filename: String) {
-    let contents = fs::read_to_string(filename).expect("Should have been able to read the file");
-    //  ^? contents : String
-    run(contents)
+fn run_file(filename: String) -> std::io::Result<()> {
+    let contents = fs::read_to_string(&filename).expect("Should have been able to read the file");
+    run(contents, filename)
 }
 
-fn run(source: String) {
-    let (tokens, errs) = Scanner::new(&source).scan();
+fn run(source: String, filename: String) -> std::io::Result<()> {
+    let (tokens, errs) = Scanner::new(&filename, &source).scan();
 
-    // For now, just print the tokens.
-    for token in tokens.iter() {
-        println!("{:?}", token);
+    if errs.len() > 0 {
+        for e in errs.iter() {
+            e.print(source.to_owned())?
+        }
+    } else {
+        // For now, just print the tokens.
+        for token in tokens.iter() {
+            println!("{:?}", token);
+        }
     }
+
+    return Ok(());
 }
