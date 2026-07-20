@@ -1,5 +1,3 @@
-use std::fmt::Debug;
-
 use ariadne::Source;
 
 use crate::parse::position::DocumentPosition;
