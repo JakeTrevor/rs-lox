@@ -4,8 +4,7 @@ use std::io::{Write, stdin, stdout};
 use std::{env, fs, process};
 
 use crate::parse::lex::scan::Scanner;
-
-// use crate::lex::Scanner;
+use crate::parse::parse::parser::Parser;
 
 fn main() -> std::io::Result<()> {
     let mut args = env::args();
@@ -52,11 +51,14 @@ fn run(source: String, filename: String) -> std::io::Result<()> {
         for e in errs.iter() {
             e.print(source.to_owned())?
         }
-    } else {
-        // For now, just print the tokens.
-        for token in tokens.iter() {
-            println!("{:?}", token);
-        }
+        return Ok(());
+    }
+
+    let result = Parser::new(tokens, filename).parse();
+
+    match result {
+        Ok(ast) => println!("{}", ast),
+        Err(err) => err.print(source.to_owned())?,
     }
 
     return Ok(());

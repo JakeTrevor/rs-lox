@@ -57,9 +57,9 @@ pub(in crate::parse) enum TokenTag {
 
 #[derive(Clone, Debug)]
 pub struct Token {
-    tag: TokenTag,
-    lexeme: String,
-    position: DocumentPosition,
+    pub tag: TokenTag,
+    pub lexeme: String,
+    pub position: DocumentPosition,
 }
 
 impl Token {
