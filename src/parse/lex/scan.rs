@@ -120,6 +120,33 @@ impl<'a> Scanner<'a> {
         self.mk_token(TokenTag::String)
     }
 
+    fn multiline(&mut self) -> Result<Token, LexErr> {
+        let mut count = 0;
+        loop {
+            if self.at_end() {
+                break;
+            }
+
+            if self.peek() == '*' && self.peek_next() == '/' {
+                if count > 0 { count -= 1 } else { break }
+            }
+
+            if self.peek() == '/' && self.peek_next() == '*' {
+                count += 1;
+            }
+
+            self.advance();
+        }
+
+        if self.at_end() {
+            return self.mk_err(LexErrTag::UnterminatedComment);
+        }
+
+        self.advance();
+        self.advance();
+        self.mk_token(TokenTag::InlineComment)
+    }
+
     fn number(&mut self) -> Result<Token, LexErr> {
         while self.peek().is_numeric() {
             self.advance();
@@ -216,17 +243,7 @@ impl<'a> Scanner<'a> {
                     }
                     self.mk_token(TokenTag::Comment)
                 } else if self.matches('*') {
-                    while self.peek() != '*' && self.peek_next() != '/' && !self.at_end() {
-                        self.advance();
-                    }
-
-                    if self.at_end() {
-                        return self.mk_err(LexErrTag::UnterminatedComment);
-                    }
-
-                    self.advance();
-                    self.advance();
-                    self.mk_token(TokenTag::InlineComment)
+                    self.multiline()
                 } else {
                     self.mk_token(TokenTag::Slash)
                 }
@@ -235,12 +252,14 @@ impl<'a> Scanner<'a> {
             '"' => self.string(),
 
             c => {
+                if c.is_whitespace() {
+                    panic!("All whitespace should get eaten by eat_whitespace")
+                }
+
                 if c.is_numeric() {
                     self.number()
                 } else if c.is_alphabetic() {
                     self.identifier()
-                } else if c.is_whitespace() {
-                    panic!("All whitespace should get eaten by eat_whitespace")
                 } else {
                     return self.mk_err(LexErrTag::UnexpectedCharacter);
                 }

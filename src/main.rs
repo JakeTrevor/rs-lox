@@ -1,10 +1,11 @@
 mod parse;
 
 use std::io::{Write, stdin, stdout};
-use std::{env, fs, process};
+use std::{env, fs, println, process};
 
 use crate::parse::lex::scan::Scanner;
 use crate::parse::parse::parser::Parser;
+use crate::parse::token;
 
 fn main() -> std::io::Result<()> {
     let mut args = env::args();
@@ -53,6 +54,10 @@ fn run(source: String, filename: String) -> std::io::Result<()> {
         }
         return Ok(());
     }
+
+    // for token in tokens.iter() {
+    //     println!("{:?}", token)
+    // }
 
     let result = Parser::new(tokens, filename).parse();
 
