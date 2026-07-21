@@ -94,14 +94,38 @@ impl Parser {
     }
 
     fn sequence(&mut self) -> ExprRes {
-        // sequence -> equality ("," equality )* ;
+        // sequence -> ternary ("," ternary )* ;
 
-        let mut expr = self.equality()?;
+        let mut expr = self.ternary()?;
 
         while let Some(op) = self.matches(vec![TokenTag::Comma]) {
             let op = op.try_into().expect("',' to be a bin op");
-            let rhs = self.equality()?;
+            let rhs = self.ternary()?;
             expr = Expr::binary(op, expr, rhs);
+        }
+
+        Ok(expr)
+    }
+
+    fn ternary(&mut self) -> ExprRes {
+        // ternary -> equality ("?" ternary ":" ternary)?
+        let mut expr = self.equality()?;
+
+        if let Some(token) = self.matches(vec![TokenTag::Question]) {
+            let position = token.position.clone();
+            let true_branch = self.ternary()?;
+
+            if let None = self.matches(vec![TokenTag::Colon]) {
+                return Err(ParseErr::new(
+                    ParseErrTag::UnclosedTernary,
+                    self.filename.clone(),
+                    position,
+                ));
+            }
+
+            let false_branch = self.ternary()?;
+
+            expr = Expr::ternary(expr, true_branch, false_branch)
         }
 
         Ok(expr)

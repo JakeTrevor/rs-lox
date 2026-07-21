@@ -127,6 +127,11 @@ pub enum Expr {
     Grouping {
         val: Box<Expr>,
     },
+    Ternary {
+        condition: Box<Expr>,
+        true_branch: Box<Expr>,
+        false_branch: Box<Expr>,
+    },
 }
 
 impl Expr {
@@ -155,6 +160,14 @@ impl Expr {
     pub fn grouping(val: Expr) -> Expr {
         Expr::Grouping { val: Box::new(val) }
     }
+
+    pub fn ternary(condition: Expr, true_branch: Expr, false_branch: Expr) -> Expr {
+        Expr::Ternary {
+            condition: Box::new(condition),
+            true_branch: Box::new(true_branch),
+            false_branch: Box::new(false_branch),
+        }
+    }
 }
 
 impl Display for Expr {
@@ -167,6 +180,11 @@ impl Display for Expr {
             Expr::Unary { op, arg } => write!(f, "{op}{arg}"),
             Expr::Binary { op, lhs, rhs } => write!(f, "{lhs}{op}{rhs}"),
             Expr::Grouping { val } => write!(f, "({val})"),
+            Expr::Ternary {
+                condition,
+                true_branch,
+                false_branch,
+            } => write!(f, "{condition} ? {true_branch} : {false_branch}"),
         }
     }
 }

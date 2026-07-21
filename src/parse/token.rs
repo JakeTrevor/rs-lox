@@ -18,6 +18,8 @@ pub(in crate::parse) enum TokenTag {
     Star,
 
     // One or two character tokens.
+    Question,
+    Colon,
     Bang,
     BangEqual,
     Equal,

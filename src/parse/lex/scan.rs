@@ -203,6 +203,8 @@ impl<'a> Scanner<'a> {
             '+' => self.mk_token(TokenTag::Plus),
             ';' => self.mk_token(TokenTag::SemiColon),
             '*' => self.mk_token(TokenTag::Star),
+            '?' => self.mk_token(TokenTag::Question),
+            ':' => self.mk_token(TokenTag::Colon),
             '!' => {
                 if self.matches('=') {
                     self.mk_token(TokenTag::BangEqual)

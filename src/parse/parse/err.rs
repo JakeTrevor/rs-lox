@@ -6,6 +6,7 @@ use crate::parse::position::DocumentPosition;
 pub enum ParseErrTag {
     MissingExpression,
     UnmatchedParen,
+    UnclosedTernary,
 }
 
 impl ParseErrTag {
@@ -13,6 +14,7 @@ impl ParseErrTag {
         match self {
             ParseErrTag::MissingExpression => 4,
             ParseErrTag::UnmatchedParen => 5,
+            ParseErrTag::UnclosedTernary => 6,
         }
     }
 }
@@ -54,6 +56,14 @@ impl ParseErr {
                     self.position
                         .to_label(self.filename.to_owned())
                         .with_message("Paren opened here"),
+                ),
+            ParseErrTag::UnclosedTernary => report
+                .with_message("Unfinished ternary expression")
+                .with_note("A ternary statement is opened, but no corresponding ':' is found")
+                .with_label(
+                    self.position
+                        .to_label(self.filename.to_owned())
+                        .with_message("Ternary started here"),
                 ),
         }
         .finish()
