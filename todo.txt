@@ -1,5 +1,5 @@
 x 2026-07-21 2026-07-20 Add support for nested comments e.g. +lexing
 (B) 2026-07-20 figure out how to add comments to AST +ast
-(B) 2026-07-20 Add C-style `,` operator for expressions +ast +parsing
+x 2026-07-21 2026-07-20 Add C-style `,` operator for expressions +ast +parsing
 (B) 2026-07-20 add C-style ternary operators `a ? b : c` +ast +lexing +parsing
 (A) 2026-07-20 add error productions for each binary operator where operator appears on left +parsing

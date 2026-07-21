@@ -14,6 +14,7 @@ pub enum BinOp {
     Minus,
     Times,
     Divide,
+    Seq,
 }
 
 impl TryFrom<&TokenTag> for BinOp {
@@ -31,6 +32,7 @@ impl TryFrom<&TokenTag> for BinOp {
             TokenTag::Plus => Ok(BinOp::Plus),
             TokenTag::Slash => Ok(BinOp::Divide),
             TokenTag::Star => Ok(BinOp::Times),
+            TokenTag::Comma => Ok(BinOp::Seq),
             _ => Err(()),
         }
     }
@@ -47,16 +49,17 @@ impl TryFrom<&Token> for BinOp {
 impl Display for BinOp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let op = match self {
-            BinOp::Eq => " == ",
-            BinOp::Neq => " != ",
-            BinOp::Lt => " < ",
-            BinOp::Lte => " <= ",
-            BinOp::Gt => " > ",
-            BinOp::Gte => " >= ",
-            BinOp::Plus => " + ",
-            BinOp::Minus => " - ",
-            BinOp::Times => " * ",
-            BinOp::Divide => " / ",
+            BinOp::Eq => "==",
+            BinOp::Neq => "!=",
+            BinOp::Lt => "<",
+            BinOp::Lte => "<=",
+            BinOp::Gt => ">",
+            BinOp::Gte => ">=",
+            BinOp::Plus => "+",
+            BinOp::Minus => "-",
+            BinOp::Times => "*",
+            BinOp::Divide => "/",
+            BinOp::Seq => ",",
         };
 
         write!(f, " {op} ")

@@ -90,7 +90,21 @@ impl Parser {
     }
 
     fn expression(&mut self) -> ExprRes {
-        self.equality()
+        self.sequence()
+    }
+
+    fn sequence(&mut self) -> ExprRes {
+        // sequence -> equality ("," equality )* ;
+
+        let mut expr = self.equality()?;
+
+        while let Some(op) = self.matches(vec![TokenTag::Comma]) {
+            let op = op.try_into().expect("',' to be a bin op");
+            let rhs = self.equality()?;
+            expr = Expr::binary(op, expr, rhs);
+        }
+
+        Ok(expr)
     }
 
     fn equality(&mut self) -> ExprRes {
