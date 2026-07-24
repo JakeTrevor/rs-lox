@@ -3,3 +3,7 @@ x 2026-07-21 2026-07-20 Add support for nested comments e.g. +lexing
 x 2026-07-21 2026-07-20 Add C-style `,` operator for expressions +ast +parsing
 x 2026-07-21 2026-07-20 add C-style ternary operators `a ? b : c` +ast +lexing +parsing
 (A) 2026-07-20 add error productions for each binary operator where operator appears on left +parsing
+x 2026-07-24 2026-07-23 Get the pretty printer working +format
+(C) 2026-07-23 Implement and test Expr pretty printer +format
+x 2026-07-24 2026-07-23 Get the HTML example working +format
+(D) 2026-07-23 Implement some static typechecking
